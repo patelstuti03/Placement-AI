@@ -1,0 +1,39 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Flask / SQLite runtime files
+instance/users.db
+*.db
+
+# Runtime upload folders (auto-created by the app)
+static/upload_dataset/
+static/preprocessed_data/
+static/int_dataset/
+static/trained_models/
+static/transformed_data/
+
+# IDE / editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+*.ipynb_checkpoints/
+
+# Logs
+*.log

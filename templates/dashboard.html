@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Placement Predictor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-container">
+  {% for cat, msg in messages %}
+  <div class="flash-msg flash-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="app-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">🎓</div>
+      <div><span>PlacementAI</span><small>Prediction System</small></div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <button class="nav-item active" id="nav-overview" onclick="showSection('overview', this)">
+        <i class="fas fa-th-large"></i> Overview
+      </button>
+      <button class="nav-item" id="nav-predict" onclick="showSection('predict', this)">
+        <i class="fas fa-magic"></i> Predict Placement
+      </button>
+      <a href="{{ url_for('history') }}" class="nav-item">
+        <i class="fas fa-history"></i> My History
+      </a>
+
+      <div class="nav-section-label">EDA Analysis</div>
+      <a href="{{ url_for('visualize_placement_status') }}" class="nav-item">
+        <i class="fas fa-chart-bar"></i> Placement Status
+      </a>
+      <a href="{{ url_for('visualize_gender_distribution') }}" class="nav-item">
+        <i class="fas fa-venus-mars"></i> Gender Distribution
+      </a>
+      <a href="{{ url_for('visualize_histograms') }}" class="nav-item">
+        <i class="fas fa-chart-area"></i> Feature Histograms
+      </a>
+      <a href="{{ url_for('visualize_pairplot') }}" class="nav-item">
+        <i class="fas fa-project-diagram"></i> Pairplots
+      </a>
+
+      <div class="nav-section-label">Admin</div>
+      <button class="nav-item" onclick="showSection('upload', this)">
+        <i class="fas fa-upload"></i> Upload Dataset
+      </button>
+      <a href="{{ url_for('train_and_evaluate') }}" class="nav-item">
+        <i class="fas fa-brain"></i> Train Models
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ username[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ username }}</div>
+        <div class="user-role">Student</div>
+      </div>
+      <a href="{{ url_for('logout') }}" class="nav-item logout" style="margin-left:auto; padding:0.4rem 0.6rem;" title="Logout">
+        <i class="fas fa-sign-out-alt"></i>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- ── OVERVIEW SECTION ── -->
+    <div id="section-overview" class="section active">
+      <div class="page-header">
+        <div class="breadcrumb">PlacementAI / Dashboard</div>
+        <h1>Welcome back, {{ username }} 👋</h1>
+        <p>Here's a summary of your placement prediction activity.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon cyan"><i class="fas fa-chart-line"></i></div>
+          <div>
+            <div class="stat-value">{{ total_preds }}</div>
+            <div class="stat-label">Total Predictions</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+          <div>
+            <div class="stat-value">{{ placed_preds }}</div>
+            <div class="stat-label">Placed Results</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple"><i class="fas fa-percentage"></i></div>
+          <div>
+            <div class="stat-value">{{ placed_pct }}%</div>
+            <div class="stat-label">Placement Rate</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan"><i class="fas fa-robot"></i></div>
+          <div>
+            <div class="stat-value">9</div>
+            <div class="stat-label">AI Models</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; flex-wrap:wrap;">
+        <div class="card">
+          <div class="card-header"><h3><i class="fas fa-bolt" style="color:var(--cyan)"></i> &nbsp;Quick Actions</h3></div>
+          <div class="card-body" style="display:flex; flex-direction:column; gap:0.75rem;">
+            <button class="btn-predict" style="width:100%;padding:0.75rem;" onclick="showSection('predict', document.getElementById('nav-predict'))">
+              <i class="fas fa-magic"></i> &nbsp;Check My Placement Chances
+            </button>
+            <a href="{{ url_for('visualize_placement_status') }}" class="btn-secondary" style="text-align:center; text-decoration:none; display:block; padding:0.75rem;">
+              <i class="fas fa-chart-bar"></i> &nbsp;View EDA Charts
+            </a>
+            <a href="{{ url_for('history') }}" class="btn-secondary" style="text-align:center; text-decoration:none; display:block; padding:0.75rem;">
+              <i class="fas fa-history"></i> &nbsp;View My History
+            </a>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3><i class="fas fa-info-circle" style="color:var(--purple)"></i> &nbsp;Models Available</h3></div>
+          <div class="card-body">
+            <div style="display:flex; flex-direction:column; gap:0.5rem;">
+              {% for m in ['Logistic Regression','Random Forest','Decision Tree','Naive Bayes','SVM','KNN','Gradient Boosting','LDA','SVM+KNN Hybrid'] %}
+              <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem;">
+                <span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></span> {{ m }}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PREDICT SECTION ── -->
+    <div id="section-predict" class="section">
+      <div class="page-header">
+        <div class="breadcrumb">PlacementAI / Predict</div>
+        <h1>Placement Prediction</h1>
+        <p>Fill in your academic &amp; personal info. All 9 AI models will vote on your result.</p>
+      </div>
+
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-header">
+          <h3><i class="fas fa-user-graduate" style="color:var(--cyan)"></i> &nbsp;Your Information</h3>
+          <button class="btn-secondary" id="reset-btn" style="padding:0.4rem 1rem; font-size:0.8rem;" onclick="resetForm()">
+            <i class="fas fa-redo"></i> Reset
+          </button>
+        </div>
+        <div class="card-body">
+          <form id="predict-form">
+            <div class="predict-grid">
+
+              <!-- Categorical dropdowns — populated by JS -->
+              <div class="form-group">
+                <label>Course</label>
+                <select name="course" id="f-course"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Branch</label>
+                <select name="branch" id="f-branch"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Cohabit (living arrangement)</label>
+                <select name="cohabit" id="f-cohabit"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Scholarship</label>
+                <select name="scholarship" id="f-scholarship"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>HSC Branch</label>
+                <select name="hsc_branch" id="f-hsc_branch"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Caste</label>
+                <select name="caste" id="f-caste"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Weekly Study Time</label>
+                <select name="weekly_studytime" id="f-weekly_studytime"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Extra Classes</label>
+                <select name="extra_classes" id="f-extra_classes"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Attendance</label>
+                <select name="attendance" id="f-attendance"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>HSC Medium</label>
+                <select name="hsc_medium" id="f-hsc_medium"><option value="">Loading…</option></select>
+              </div>
+              <div class="form-group">
+                <label>Certification</label>
+                <select name="certification" id="f-certification"><option value="">Loading…</option></select>
+              </div>
+
+              <!-- Numeric inputs -->
+              <div class="form-group">
+                <label>Backlogs (number)</label>
+                <input type="number" name="backlog" id="f-backlog" min="0" max="20" value="0">
+              </div>
+              <div class="form-group">
+                <label>Degree Result (%)</label>
+                <input type="number" name="degree_result" id="f-degree_result" min="0" max="100" step="0.1" value="0">
+              </div>
+              <div class="form-group">
+                <label>HSC Result (%)</label>
+                <input type="number" name="hsc_result" id="f-hsc_result" min="0" max="100" step="0.1" value="0">
+              </div>
+              <div class="form-group">
+                <label>Communication Rating (1–10)</label>
+                <input type="number" name="communication_rating" id="f-communication_rating" min="1" max="10" value="5">
+              </div>
+              <div class="form-group">
+                <label>Number of Internships</label>
+                <input type="number" name="no_of_internship" id="f-no_of_internship" min="0" max="10" value="0">
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button type="submit" class="btn-predict" id="predict-btn">
+                <i class="fas fa-magic"></i> &nbsp;Predict My Placement
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Results panel -->
+      <div class="result-panel" id="result-panel">
+        <div class="result-overall">
+          <p style="color:var(--text-muted); font-size:0.9rem;">Overall Verdict (majority vote)</p>
+          <div class="result-badge" id="overall-badge">—</div>
+          <p id="vote-summary" style="color:var(--text-muted); font-size:0.9rem;"></p>
+
+          <div class="vote-bar-wrap">
+            <div class="vote-bar-label">
+              <span>Placed votes</span><span id="placed-pct-label">0%</span>
+            </div>
+            <div class="vote-bar">
+              <div class="vote-bar-fill green" id="placed-bar" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="vote-bar-wrap">
+            <div class="vote-bar-label">
+              <span>Not Placed votes</span><span id="not-placed-pct-label">0%</span>
+            </div>
+            <div class="vote-bar">
+              <div class="vote-bar-fill red" id="not-placed-bar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Results from all 9 models</h3></div>
+          <div class="card-body">
+            <div class="models-grid" id="models-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── UPLOAD SECTION ── -->
+    <div id="section-upload" class="section">
+      <div class="page-header">
+        <div class="breadcrumb">PlacementAI / Dataset</div>
+        <h1>Dataset Management</h1>
+        <p>Upload and transform datasets for EDA and model training.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+        <div class="card">
+          <div class="card-header"><h3><i class="fas fa-upload" style="color:var(--cyan)"></i> &nbsp;Upload Dataset</h3></div>
+          <div class="card-body">
+            <form id="upload-form" enctype="multipart/form-data" action="{{ url_for('upload_dataset') }}" method="POST">
+              <label for="file-input" class="upload-zone" id="upload-zone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag &amp; drop or <strong>browse</strong></p>
+                <p style="font-size:0.78rem; margin-top:0.5rem;">CSV files only</p>
+              </label>
+              <input type="file" id="file-input" name="file" accept=".csv" style="display:none;" onchange="updateZone(this)">
+              <div class="action-row">
+                <button type="submit" class="btn-predict" style="padding:0.75rem 1.5rem;">Upload &amp; Clean</button>
+              </div>
+            </form>
+            <div id="upload-msg" style="display:none; margin-top:1rem; color:var(--green);"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3><i class="fas fa-cogs" style="color:var(--purple)"></i> &nbsp;Data Transform</h3></div>
+          <div class="card-body">
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">
+              Converts the cleaned dataset categorical columns to integer codes required by the ML models.
+            </p>
+            <form id="transform-form" action="{{ url_for('convert_to_int') }}" method="POST">
+              <button type="submit" class="btn-predict" style="padding:0.75rem 1.5rem;">Transform Dataset</button>
+            </form>
+            <div id="transform-msg" style="display:none; margin-top:1rem; color:var(--green);"></div>
+          </div>
+        </div>
+      </div>
+
+      {% if last_file %}
+      <div class="card" style="margin-top:1.5rem;">
+        <div class="card-body" style="display:flex; align-items:center; gap:1rem;">
+          <i class="fas fa-file-csv" style="color:var(--cyan); font-size:1.5rem;"></i>
+          <div>
+            <div style="font-weight:600;">Last uploaded file</div>
+            <div style="color:var(--text-muted); font-size:0.85rem;">{{ last_file }}</div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast container -->
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+// ── Section switching ─────────────────────────────────────────────────────────
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ── Populate dropdowns ────────────────────────────────────────────────────────
+const CAT_FIELDS = ['course','branch','cohabit','scholarship','hsc_branch',
+                    'caste','weekly_studytime','extra_classes','attendance',
+                    'hsc_medium','certification'];
+
+fetch('{{ url_for("get_feature_options") }}')
+  .then(r => r.json())
+  .then(data => {
+    CAT_FIELDS.forEach(f => {
+      const sel = document.getElementById('f-' + f);
+      if (!sel || !data[f]) return;
+      sel.innerHTML = '';
+      data[f].forEach(v => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = v;
+        sel.appendChild(o);
+      });
+    });
+  }).catch(() => {
+    CAT_FIELDS.forEach(f => {
+      const sel = document.getElementById('f-' + f);
+      if (sel) sel.innerHTML = '<option value="0">N/A</option>';
+    });
+  });
+
+// ── Prediction submit ─────────────────────────────────────────────────────────
+document.getElementById('predict-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('predict-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> &nbsp;Predicting…';
+
+  const fd = new FormData(this);
+  fetch('{{ url_for("predict_user") }}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-magic"></i> &nbsp;Predict My Placement';
+
+      if (data.error) { showToast(data.error, 'error'); return; }
+
+      // Overall badge
+      const badge = document.getElementById('overall-badge');
+      badge.textContent = data.overall;
+      badge.className = 'result-badge ' + (data.overall === 'Placed' ? 'placed' : 'not-placed');
+
+      // Vote summary
+      document.getElementById('vote-summary').textContent =
+        `${data.placed_count} of ${data.total_models} models say Placed`;
+
+      // Bars
+      const pct = Math.round(data.placed_count / data.total_models * 100);
+      document.getElementById('placed-bar').style.width = pct + '%';
+      document.getElementById('not-placed-bar').style.width = (100 - pct) + '%';
+      document.getElementById('placed-pct-label').textContent = pct + '%';
+      document.getElementById('not-placed-pct-label').textContent = (100 - pct) + '%';
+
+      // Model cards
+      const grid = document.getElementById('models-grid');
+      grid.innerHTML = '';
+      Object.entries(data.results).forEach(([model, result]) => {
+        const cls = result === 'Placed' ? 'placed' : 'not-placed';
+        grid.innerHTML += `
+          <div class="model-card">
+            <span class="model-name">${model}</span>
+            <span class="model-result ${cls}">${result}</span>
+          </div>`;
+      });
+
+      document.getElementById('result-panel').classList.add('visible');
+      document.getElementById('result-panel').scrollIntoView({behavior:'smooth'});
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-magic"></i> &nbsp;Predict My Placement';
+      showToast('Prediction failed. Please try again.', 'error');
+    });
+});
+
+function resetForm() {
+  document.getElementById('predict-form').reset();
+  document.getElementById('result-panel').classList.remove('visible');
+}
+
+// ── Upload form (AJAX) ────────────────────────────────────────────────────────
+document.getElementById('upload-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const fd = new FormData(this);
+  fetch(this.action, { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('upload-msg');
+      el.textContent = '✅ ' + (d.message || d.error);
+      el.style.color = d.message ? 'var(--green)' : 'var(--red)';
+      el.style.display = 'block';
+    });
+});
+
+document.getElementById('transform-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  fetch(this.action, { method: 'POST', body: new FormData(this) })
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('transform-msg');
+      el.textContent = '✅ ' + (d.message || d.error);
+      el.style.color = d.message ? 'var(--green)' : 'var(--red)';
+      el.style.display = 'block';
+    });
+});
+
+function updateZone(input) {
+  const zone = document.getElementById('upload-zone');
+  if (input.files[0])
+    zone.querySelector('p').textContent = '📄 ' + input.files[0].name;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '');
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
+
+// ── Auto-hide flash ───────────────────────────────────────────────────────────
+setTimeout(() => {
+  document.querySelectorAll('.flash-msg').forEach(el => {
+    el.style.opacity = '0'; el.style.transition = 'opacity 0.5s';
+    setTimeout(() => el.remove(), 500);
+  });
+}, 4000);
+</script>
+</body>
+</html>

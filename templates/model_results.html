@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Model Results — PlacementAI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">🎓</div>
+      <div><span>PlacementAI</span><small>Prediction System</small></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('home') }}" class="nav-item"><i class="fas fa-th-large"></i> Overview</a>
+      <a href="{{ url_for('home') }}" class="nav-item"><i class="fas fa-magic"></i> Predict</a>
+      <a href="{{ url_for('history') }}" class="nav-item"><i class="fas fa-history"></i> My History</a>
+      <div class="nav-section-label">EDA</div>
+      <a href="{{ url_for('visualize_placement_status') }}" class="nav-item"><i class="fas fa-chart-bar"></i> Placement Status</a>
+      <a href="{{ url_for('visualize_histograms') }}" class="nav-item"><i class="fas fa-chart-area"></i> Histograms</a>
+      <div class="nav-section-label">Admin</div>
+      <a href="{{ url_for('train_and_evaluate') }}" class="nav-item active"><i class="fas fa-brain"></i> Train Models</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ username[0].upper() if username else 'U' }}</div>
+      <div><div class="user-name">{{ username }}</div><div class="user-role">Student</div></div>
+      <a href="{{ url_for('logout') }}" class="nav-item logout" style="margin-left:auto;padding:0.4rem 0.6rem;"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div class="breadcrumb">PlacementAI / Model Training</div>
+      <h1>Model Evaluation Results</h1>
+      <p>Performance comparison across all trained classifiers.</p>
+    </div>
+
+    <div class="model-results-grid">
+      {% for model_name, report in classification_reports.items() %}
+      <div class="card">
+        <div class="card-header">
+          <h3 style="font-size:0.9rem;">{{ model_name }}</h3>
+        </div>
+        <div class="card-body">
+          <div style="text-align:center; margin-bottom:1rem;">
+            <div class="accuracy-big">{{ report.accuracy }}%</div>
+            <div class="accuracy-label">Accuracy</div>
+          </div>
+          <pre class="report">{{ report.classification_report }}</pre>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+</body>
+</html>

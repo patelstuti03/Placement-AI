@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History — Placement Predictor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">🎓</div>
+      <div><span>PlacementAI</span><small>Prediction System</small></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('home') }}" class="nav-item"><i class="fas fa-th-large"></i> Overview</a>
+      <a href="{{ url_for('home') }}" class="nav-item"><i class="fas fa-magic"></i> Predict</a>
+      <a href="{{ url_for('history') }}" class="nav-item active"><i class="fas fa-history"></i> My History</a>
+      <div class="nav-section-label">EDA</div>
+      <a href="{{ url_for('visualize_placement_status') }}" class="nav-item"><i class="fas fa-chart-bar"></i> Placement Status</a>
+      <a href="{{ url_for('visualize_gender_distribution') }}" class="nav-item"><i class="fas fa-venus-mars"></i> Gender</a>
+      <a href="{{ url_for('visualize_histograms') }}" class="nav-item"><i class="fas fa-chart-area"></i> Histograms</a>
+      <a href="{{ url_for('visualize_pairplot') }}" class="nav-item"><i class="fas fa-project-diagram"></i> Pairplots</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ username[0].upper() }}</div>
+      <div><div class="user-name">{{ username }}</div><div class="user-role">Student</div></div>
+      <a href="{{ url_for('logout') }}" class="nav-item logout" style="margin-left:auto;padding:0.4rem 0.6rem;" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div class="breadcrumb">PlacementAI / History</div>
+      <h1>Prediction History</h1>
+      <p>All your past placement predictions, most recent first.</p>
+    </div>
+
+    {% if history %}
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-history" style="color:var(--cyan)"></i> &nbsp;Past Predictions ({{ history|length }})</h3>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date &amp; Time</th>
+                <th>Overall Result</th>
+                <th>Placed / Not Placed</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in history %}
+              <tr>
+                <td style="color:var(--text-muted);">{{ loop.index }}</td>
+                <td>{{ record.timestamp }}</td>
+                <td>
+                  <span class="badge {{ 'badge-green' if record.overall == 'Placed' else 'badge-red' }}">
+                    {{ record.overall }}
+                  </span>
+                </td>
+                <td style="font-size:0.85rem; color:var(--text-muted);">
+                  {{ record.results.values()|list|select('equalto','Placed')|list|length }} Placed /
+                  {{ record.results.values()|list|reject('equalto','Placed')|list|length }} Not Placed
+                </td>
+                <td>
+                  <button class="btn-secondary" style="padding:0.3rem 0.85rem; font-size:0.78rem;"
+                    onclick="toggleDetail('detail-{{ record.id }}')">
+                    <i class="fas fa-eye"></i> View
+                  </button>
+                </td>
+              </tr>
+              <tr id="detail-{{ record.id }}" style="display:none; background:rgba(255,255,255,0.02);">
+                <td colspan="5" style="padding:1.25rem 1.5rem;">
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+                    <div>
+                      <div style="font-weight:600; margin-bottom:0.75rem; color:var(--cyan);">Model Results</div>
+                      <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                        {% for model, result in record.results.items() %}
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+                          <span>{{ model }}</span>
+                          <span class="badge {{ 'badge-green' if result == 'Placed' else 'badge-red' }}">{{ result }}</span>
+                        </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-weight:600; margin-bottom:0.75rem; color:var(--purple);">Your Inputs</div>
+                      <div style="display:flex; flex-direction:column; gap:0.3rem;">
+                        {% for key, val in record.inputs.items() %}
+                        <div style="font-size:0.82rem; color:var(--text-muted);">
+                          <span style="color:var(--text); font-weight:500;">{{ key }}:</span> {{ val }}
+                        </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body" style="text-align:center; padding:4rem;">
+        <i class="fas fa-history" style="font-size:3rem; color:var(--text-muted); margin-bottom:1rem; display:block;"></i>
+        <h3 style="color:var(--text-muted);">No predictions yet</h3>
+        <p style="color:var(--text-muted); margin-top:0.5rem;">Go to Predict to check your placement chances.</p>
+        <a href="{{ url_for('home') }}" class="btn-predict" style="display:inline-block; margin-top:1.5rem; text-decoration:none; padding:0.75rem 2rem;">
+          <i class="fas fa-magic"></i> Predict Now
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </main>
+</div>
+
+<script>
+function toggleDetail(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'table-row' : 'none';
+}
+</script>
+</body>
+</html>

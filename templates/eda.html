@@ -1,0 +1,64 @@
+{% extends "dashboard.html" %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDA Summary — Placement Predictor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0d0f1a; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+    h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1.5rem;
+         background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(10px); }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 0.75rem 1rem; color: #818cf8; font-size: 0.8rem;
+         text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    td { padding: 0.6rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(99,102,241,0.08); }
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px;
+             font-size: 0.75rem; font-weight: 600; }
+    .badge-purple { background: rgba(139,92,246,0.2); color: #a78bfa; }
+    .back-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
+                background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.4);
+                border-radius: 0.5rem; color: #818cf8; text-decoration: none; margin-bottom: 1.5rem;
+                transition: all 0.2s; font-size: 0.9rem; }
+    .back-btn:hover { background: rgba(99,102,241,0.3); }
+  </style>
+</head>
+<body>
+  <a href="{{ url_for('home') }}" class="back-btn">← Back to Dashboard</a>
+  <h1>📊 EDA Summary</h1>
+
+  {% for eda in eda_results %}
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Column</th>
+          <th>Data Type</th>
+          <th>Missing Values</th>
+          <th>Unique Values</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in range(eda.columns|length) %}
+        <tr>
+          <td>{{ i + 1 }}</td>
+          <td><strong>{{ eda.columns[i] }}</strong></td>
+          <td><span class="badge badge-purple">{{ eda.data_types[i] }}</span></td>
+          <td>{{ eda.missing_values[i] }}</td>
+          <td>{{ eda.unique_values[i] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</body>
+</html>
+{% endblock %}
